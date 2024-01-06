@@ -11,8 +11,14 @@ const SecondPage = () => {
     <Grid container spacing={6}>
       <Grid item xs={12}>
         <Card>
-          <CardHeader title="Kiến Thức Bổ Sung về Chăn Nuôi Heo"></CardHeader>
           <CardContent>
+            <Typography
+              variant="h2"
+              sx={{ whiteSpace: "pre-line", fontWeight: "bold" }}
+              gutterBottom
+            >
+              Kiến Thức Bổ Sung về Chăn Nuôi Heo
+            </Typography>
             <Typography sx={{ whiteSpace: "pre-line" }} gutterBottom>
               Quản lý tiểu khí hậu chuồng nuôi trong chăn nuôi nói chung cũng
               như trong chăn nuôi heo nói riêng có vai trò vô cùng quan trọng,
