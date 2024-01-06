@@ -94,7 +94,11 @@ const UserDropdown = (props) => {
       >
         <Avatar
           alt="User"
-          src="/images/avatars/user.png"
+          src={
+            user.role === "admin"
+              ? "/images/avatars/admin.png"
+              : "/images/avatars/user.png"
+          }
           onClick={handleDropdownOpen}
           sx={{ width: 38, height: 38 }}
         />
@@ -124,8 +128,12 @@ const UserDropdown = (props) => {
               }}
             >
               <Avatar
-                alt="John Doe"
-                src="/images/avatars/user.png"
+                alt="user"
+                src={
+                  user.role === "admin"
+                    ? "/images/avatars/admin.png"
+                    : "/images/avatars/user.png"
+                }
                 sx={{ width: "2.5rem", height: "2.5rem" }}
               />
             </Badge>

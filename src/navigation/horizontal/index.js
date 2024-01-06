@@ -6,6 +6,11 @@ const navigation = () => {
       icon: "tabler:share",
     },
     {
+      title: "Quản lý người dùng",
+      path: "/users",
+      icon: "tabler:users",
+    },
+    {
       title: "Danh sách thiết bị",
       path: "/devices",
       icon: "tabler:server-bolt",

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 // ** MUI Imports
+import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import Menu from "@mui/material/Menu";
 import Grid from "@mui/material/Grid";
@@ -16,13 +17,48 @@ import UserDialog from "./components/Dialog";
 // ** Icon Imports
 import Icon from "src/@core/components/icon";
 
+// ** Custom Components Imports
+import CustomAvatar from "src/@core/components/mui/avatar";
+
 //Api imports
-import { getDevices } from "src/api/device";
+import { getUsers } from "src/api/user";
 
 // ** Custom Table Components Imports
 import TableHeader from "./components/TableHeader";
-import AddUserDrawer from "./components/AddDeviceDrawer";
+import AddUserDrawer from "./components/AddUserDrawer";
 import { convertTime } from "src/utils/base";
+import { getDevices } from "src/api/device";
+
+// ** renders client column
+const userRoleObj = {
+  admin: {
+    title: "Quản trị viên",
+    icon: "tabler:device-laptop",
+    color: "success",
+  },
+  user: { title: "Người dùng", icon: "tabler:chart-pie-2", color: "primary" },
+};
+
+// ** renders client column
+const renderClient = (row) => {
+  if (row.role === "admin") {
+    return (
+      <CustomAvatar
+        src="/images/avatars/admin.png"
+        sx={{ width: 38, height: 38 }}
+        alt={row.name}
+      />
+    );
+  } else {
+    return (
+      <CustomAvatar
+        src="/images/avatars/user.png"
+        sx={{ width: 38, height: 38 }}
+        alt={row.name}
+      />
+    );
+  }
+};
 
 const RowOptions = ({ row, setRow, setOpenUpdate, setOpenDelete }) => {
   // ** State
@@ -79,14 +115,57 @@ const RowOptions = ({ row, setRow, setOpenUpdate, setOpenDelete }) => {
   );
 };
 
-const DeviceList = () => {
+const UserList = () => {
   //Data column
   const columns = [
     {
-      flex: 0.1,
-      minWidth: 150,
-      field: "name",
-      headerName: "Tên thiết bị",
+      flex: 0.25,
+      minWidth: 200,
+      field: "username",
+      headerName: "Tên người dùng",
+      renderCell: ({ row }) => {
+        return (
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Box
+              sx={{
+                mr: 2.5,
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                backgroundColor: "#ececec",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {renderClient(row)}
+            </Box>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "flex-start",
+                flexDirection: "column",
+              }}
+            >
+              <Typography
+                noWrap
+                sx={{
+                  fontWeight: 500,
+                  textDecoration: "none",
+                }}
+              >
+                {row.username}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      },
+    },
+    {
+      flex: 0.25,
+      minWidth: 200,
+      field: "email",
+      headerName: "Email",
       renderCell: ({ row }) => {
         return (
           <Typography
@@ -96,16 +175,16 @@ const DeviceList = () => {
               textDecoration: "none",
             }}
           >
-            {row.deviceName}
+            {row.email}
           </Typography>
         );
       },
     },
     {
-      flex: 0.1,
-      minWidth: 140,
-      field: "mac",
-      headerName: "Địa chỉ MAC",
+      flex: 0.15,
+      minWidth: 180,
+      field: "phone",
+      headerName: "Số điện thoại",
       renderCell: ({ row }) => {
         return (
           <Typography
@@ -115,27 +194,37 @@ const DeviceList = () => {
               textDecoration: "none",
             }}
           >
-            {row.mac}
+            {row.phone}
           </Typography>
         );
       },
     },
     {
-      flex: 0.1,
-      minWidth: 140,
-      field: "describe",
-      headerName: "Mô tả",
+      flex: 0.15,
+      field: "role",
+      minWidth: 180,
+      headerName: "Vai trò",
       renderCell: ({ row }) => {
         return (
-          <Typography
-            noWrap
-            sx={{
-              fontWeight: 500,
-              textDecoration: "none",
-            }}
-          >
-            {row.describe}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <CustomAvatar
+              skin="light"
+              sx={{ mr: 4, width: 30, height: 30 }}
+              color={userRoleObj[row.role].color || "primary"}
+            >
+              <Icon icon={userRoleObj[row.role].icon} />
+            </CustomAvatar>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 500,
+                textDecoration: "none",
+                textTransform: "capitalize",
+              }}
+            >
+              {userRoleObj[row.role].title || "Vận hành"}
+            </Typography>
+          </Box>
         );
       },
     },
@@ -160,7 +249,7 @@ const DeviceList = () => {
     },
     {
       flex: 0.1,
-      minWidth: 120,
+      minWidth: 150,
       sortable: false,
       field: "actions",
       align: "center",
@@ -183,6 +272,7 @@ const DeviceList = () => {
   const [row, setRow] = useState([]);
   const [openUpdate, setOpenUpdate] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
+  const [devicesList, setDevicesList] = useState([]);
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 10,
@@ -191,7 +281,9 @@ const DeviceList = () => {
   // ** Hooks
   const fetchData = useCallback(async () => {
     try {
-      const response = await getDevices();
+      const response = await getUsers();
+      const devices = await getDevices();
+      setDevicesList(devices);
       setRowData(response);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -209,7 +301,7 @@ const DeviceList = () => {
     <Grid container spacing={6.5}>
       <Grid item xs={12}>
         <Card>
-          <CardHeader title="Danh sách thiết bị" />
+          <CardHeader title="Danh sách người dùng" />
           <Divider sx={{ m: "0 !important" }} />
           <TableHeader toggle={toggleAddUserDrawer} />
           <DataGrid
@@ -228,6 +320,7 @@ const DeviceList = () => {
         fetchData={fetchData}
         open={addUserOpen}
         toggle={toggleAddUserDrawer}
+        devicesList={devicesList}
       />
       <UserDialog
         openUpdate={openUpdate}
@@ -236,9 +329,10 @@ const DeviceList = () => {
         refresh={fetchData}
         openDelete={openDelete}
         toggleDelete={setOpenDelete}
+        devicesList={devicesList}
       ></UserDialog>
     </Grid>
   );
 };
 
-export default DeviceList;
+export default UserList;

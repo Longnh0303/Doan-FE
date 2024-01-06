@@ -1,12 +1,8 @@
 // ** React Imports
 import { useState, useEffect, useCallback } from "react";
+// ** Next Import
 import { useRouter } from "next/router";
-
-// ** Next Imports
-import Link from "next/link";
-
 // ** MUI Imports
-import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import Menu from "@mui/material/Menu";
 import Grid from "@mui/material/Grid";
@@ -15,120 +11,160 @@ import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import CardHeader from "@mui/material/CardHeader";
-import CardContent from "@mui/material/CardContent";
 import { DataGrid } from "@mui/x-data-grid";
-import Tooltip from "@mui/material/Tooltip";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 // ** Icon Imports
 import Icon from "src/@core/components/icon";
 
-// ** Custom Components Imports
-import CustomChip from "src/@core/components/mui/chip";
+//Api imports
+import { getDevices } from "src/api/device";
+import { getUserById } from "src/api/user";
+import { useAuth } from "src/hooks/useAuth";
 
-const userStatusObj = {
-  active: { name: "Đang hoạt động", color: "success" },
-  inactive: { name: "Không hoạt động", color: "secondary" },
-};
+// ** Custom Table Components Imports
+import { convertTime } from "src/utils/base";
 
-const data = [
-  { id: 1, name: "ESP_MASTER_1", slaveNumber: 3, status: "active" },
-  { id: 2, name: "ESP_MASTER_2", slaveNumber: 5, status: "active" },
-  { id: 3, name: "ESP_MASTER_3", slaveNumber: 5, status: "inactive" },
-  { id: 4, name: "ESP_MASTER_4", slaveNumber: 2, status: "inactive" },
-  { id: 5, name: "ESP_MASTER_5", slaveNumber: 3, status: "active" },
-];
-
-const UserList = () => {
+const DeviceList = () => {
+  //Data column
   const columns = [
     {
-      flex: 0.25,
-      minWidth: 280,
+      flex: 0.1,
+      minWidth: 150,
       field: "name",
       headerName: "Tên thiết bị",
-      renderCell: ({ row }) => {
-        return (
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Typography
-              noWrap
-              sx={{
-                fontWeight: 500,
-                textDecoration: "none",
-                color: "text.secondary",
-              }}
-            >
-              {row.name}
-            </Typography>
-          </Box>
-        );
-      },
-    },
-    {
-      flex: 0.15,
-      minWidth: 120,
-      headerName: "Số lượng thiết bị con",
-      field: "slaveNumber",
-      headerAlign: "center", // Center-align the header
-      align: "center", // Center-align the cell content
       renderCell: ({ row }) => {
         return (
           <Typography
             noWrap
             sx={{
               fontWeight: 500,
-              color: "text.secondary",
-              textTransform: "capitalize",
+              textDecoration: "none",
             }}
           >
-            {row.slaveNumber}
+            {row.deviceName}
           </Typography>
         );
       },
     },
     {
       flex: 0.1,
-      minWidth: 110,
-      field: "status",
-      headerName: "Trạng thái",
-      headerAlign: "center", // Center-align the header
-      align: "center", // Center-align the cell content
+      minWidth: 140,
+      field: "mac",
+      headerName: "Địa chỉ MAC",
       renderCell: ({ row }) => {
         return (
-          <CustomChip
-            rounded
-            skin="light"
-            size="small"
-            label={userStatusObj[row.status].name}
-            color={userStatusObj[row.status].color}
-            sx={{ textTransform: "capitalize" }}
-          />
+          <Typography
+            noWrap
+            sx={{
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            {row.mac}
+          </Typography>
         );
       },
     },
     {
       flex: 0.1,
-      minWidth: 100,
-      sortable: false,
-      field: "actions",
-      headerName: "Hành động",
-      headerAlign: "center", // Center-align the header
-      align: "center", // Center-align the cell content
+      minWidth: 140,
+      field: "describe",
+      headerName: "Mô tả",
       renderCell: ({ row }) => {
         return (
-          <Tooltip title="Xem">
-            <IconButton onClick={() => router.push(`/home/${row.id}`)}>
-              <VisibilityIcon />
-            </IconButton>
-          </Tooltip>
+          <Typography
+            noWrap
+            sx={{
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            {row.describe}
+          </Typography>
+        );
+      },
+    },
+    {
+      flex: 0.15,
+      minWidth: 180,
+      field: "createdAt", // Corrected field name
+      headerName: "Ngày tạo",
+      renderCell: ({ row }) => {
+        return (
+          <Typography
+            noWrap
+            sx={{
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            {convertTime(row.createdAt)}
+          </Typography>
+        );
+      },
+    },
+    {
+      flex: 0.1,
+      minWidth: 120,
+      sortable: false,
+      field: "actions",
+      align: "center",
+      headerAlign: "center",
+      headerName: "Xem",
+      renderCell: ({ row }) => {
+        return (
+          <IconButton
+            onClick={() => {
+              handleViewClick(row.mac);
+            }}
+            aria-label="view"
+          >
+            <VisibilityIcon />
+          </IconButton>
         );
       },
     },
   ];
+
+  const role = useAuth().user.role;
+  const user = useAuth().user;
   // ** State
+  const [rowData, setRowData] = useState([]);
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 10,
   });
   const router = useRouter();
+
+  const handleViewClick = (id) => {
+    router.push(`/home/${id}`);
+  };
+
+  // ** Hooks
+  const fetchData = useCallback(async () => {
+    try {
+      if (role === "admin") {
+        const response = await getDevices();
+        setRowData(response);
+      } else {
+        const response = await getUserById(user._id);
+
+        const modifiedDevices = response.devices.map((device) => ({
+          ...device,
+          id: device._id,
+        }));
+
+        setRowData(modifiedDevices);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <Grid container spacing={6.5}>
@@ -139,10 +175,10 @@ const UserList = () => {
           <DataGrid
             autoHeight
             rowHeight={62}
-            rows={data}
+            rows={rowData}
             columns={columns}
             disableRowSelectionOnClick
-            pageSizeOptions={[10, 25, 50]}
+            pageSizeOptions={[5, 10, 20]}
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
           />
@@ -152,4 +188,9 @@ const UserList = () => {
   );
 };
 
-export default UserList;
+DeviceList.acl = {
+  action: "read",
+  subject: "home-page",
+};
+
+export default DeviceList;

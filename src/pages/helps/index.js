@@ -25,4 +25,9 @@ const SecondPage = () => {
   );
 };
 
+SecondPage.acl = {
+  action: "read",
+  subject: "helps-page",
+};
+
 export default SecondPage;

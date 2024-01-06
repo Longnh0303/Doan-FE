@@ -1,38 +1,28 @@
 // ** React Imports
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
-// ** Next Imports
-import Link from "next/link";
+import socket from "src/configs/socket";
 
 // ** MUI Imports
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
-import Menu from "@mui/material/Menu";
 import Grid from "@mui/material/Grid";
 import Divider from "@mui/material/Divider";
-import MenuItem from "@mui/material/MenuItem";
-import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import CardHeader from "@mui/material/CardHeader";
-import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
 import { DataGrid } from "@mui/x-data-grid";
-import Tooltip from "@mui/material/Tooltip";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-// ** Icon Imports
-import Icon from "src/@core/components/icon";
-
 // ** Custom Components Imports
-import CustomChip from "src/@core/components/mui/chip";
 
-const userStatusObj = {
-  active: { name: "Đang hoạt động", color: "success" },
-  inactive: { name: "Không hoạt động", color: "secondary" },
+const statusObj = {
+  true: { title: "Đang hoạt động", color: "success" },
+  false: { title: "Không hoạt động", color: "secondary" },
 };
 
 const columns = [
   {
     flex: 0.25,
-    minWidth: 280,
+    minWidth: 200,
     field: "name",
     headerName: "Tên thiết bị",
     renderCell: ({ row }) => {
@@ -46,7 +36,7 @@ const columns = [
               color: "text.secondary",
             }}
           >
-            {row.name}
+            {row.id}
           </Typography>
         </Box>
       );
@@ -54,7 +44,7 @@ const columns = [
   },
   {
     flex: 0.15,
-    minWidth: 120,
+    minWidth: 160,
     headerName: "Nhiệt độ(độ C)",
     field: "temp",
     headerAlign: "center", // Center-align the header
@@ -69,7 +59,7 @@ const columns = [
             textTransform: "capitalize",
           }}
         >
-          {row.temp}
+          {row.temp !== "null" ? row.temp : 0}
         </Typography>
       );
     },
@@ -92,14 +82,14 @@ const columns = [
             textTransform: "capitalize",
           }}
         >
-          {row.hum}
+          {row.hum !== "null" ? row.hum : 0}
         </Typography>
       );
     },
   },
   {
     flex: 0.15,
-    minWidth: 120,
+    minWidth: 280,
     headerName: "Chất lượng không khí(ppm)",
     field: "mq135",
     headerAlign: "center", // Center-align the header
@@ -114,55 +104,72 @@ const columns = [
             textTransform: "capitalize",
           }}
         >
-          {row.mq}
+          {row.mq !== "null" ? row.mq : 0}
         </Typography>
       );
     },
   },
   {
-    flex: 0.1,
-    minWidth: 110,
-    field: "status",
-    headerName: "Trạng thái",
+    flex: 0.15,
+    minWidth: 180,
+    headerName: "Trạng thái quạt",
+    field: "fan",
     headerAlign: "center", // Center-align the header
     align: "center", // Center-align the cell content
     renderCell: ({ row }) => {
       return (
-        <CustomChip
-          rounded
-          skin="light"
-          size="small"
-          label={userStatusObj[row.status].name}
-          color={userStatusObj[row.status].color}
-          sx={{ textTransform: "capitalize" }}
+        <Chip
+          label={statusObj[row.fan].title}
+          color={statusObj[row.fan].color}
+        />
+      );
+    },
+  },
+  {
+    flex: 0.15,
+    minWidth: 180,
+    headerName: "Trạng thái đèn",
+    field: "light",
+    headerAlign: "center", // Center-align the header
+    align: "center", // Center-align the cell content
+    renderCell: ({ row }) => {
+      return (
+        <Chip
+          label={statusObj[row.light].title}
+          color={statusObj[row.light].color}
         />
       );
     },
   },
 ];
 
-const data = [
-  { id: 1, name: "ESP_SLAVE_1", temp: 25, hum: 35, mq: 15, status: "active" },
-  { id: 2, name: "ESP_SLAVE_2", temp: 15, hum: 50, mq: 10, status: "active" },
-  { id: 3, name: "ESP_SLAVE_3", temp: 10, hum: 70, mq: 30, status: "active" },
-  { id: 4, name: "ESP_SLAVE_4", temp: 30, hum: 55, mq: 95, status: "active" },
-  { id: 5, name: "ESP_SLAVE_5", temp: 0, hum: 0, mq: 0, status: "inactive" },
-];
-
 const UserList = () => {
   const router = useRouter();
   const id = router.query.id;
+  const [data, setData] = useState([]);
+
   // ** State
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 10,
   });
 
+  useEffect(() => {
+    socket.connect();
+    socket.emit("request-join-room", `${id}_status`);
+  }, []);
+
+  useEffect(() => {
+    socket.on("device_status", async (msg) => {
+      setData(msg.data.message.devices);
+    });
+  });
+
   return (
     <Grid container spacing={6.5}>
       <Grid item xs={12}>
         <Card>
-          <CardHeader title="Danh sách thiết bị con và cảm biến" />
+          <CardHeader title="Theo dõi cảm biến" />
           <Divider sx={{ m: "0 !important" }} />
           <DataGrid
             autoHeight
@@ -178,6 +185,11 @@ const UserList = () => {
       </Grid>
     </Grid>
   );
+};
+
+UserList.acl = {
+  action: "read",
+  subject: "home-child-page",
 };
 
 export default UserList;

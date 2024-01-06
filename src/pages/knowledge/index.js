@@ -347,4 +347,9 @@ const SecondPage = () => {
   );
 };
 
+SecondPage.acl = {
+  action: "read",
+  subject: "knowledge-page",
+};
+
 export default SecondPage;
